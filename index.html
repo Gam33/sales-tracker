@@ -88,7 +88,7 @@ th,td { border:1px solid #ddd; padding:8px; text-align:left;}
 // رابط Web App لـ Google Apps Script
 const API_URL = "https://script.google.com/macros/s/AKfycbxbmwtYWHWRq0XwTwmkiqETKxcWmXrzz6Hi-AOpMdxEmJI6z9paaf16a7ZayLgrB9kz/exec"; // ضع رابط نشر السكريبت هنا
 
-client.Payments.forEach(p => {const tr = document.createElement('tr');
+let client.Payments.forEach(p => {const tr = document.createElement('tr');
   tr.innerHTML = `<td>${p.amount.toFixed(2)}</td><td>${formatDate(p.date)}</td>`;
   tbody.appendChild(tr);
 });
