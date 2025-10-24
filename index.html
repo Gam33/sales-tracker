@@ -1,271 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sales Tracker</title>
-<style>
-body { font-family: Arial; margin:20px; background:#f4f4f4; }
-.container { max-width:1000px; margin:auto; background:white; padding:20px; border-radius:10px; }
-
-.summary { display:flex; gap:15px; margin-bottom:20px; }
-.card { flex:1; padding:20px; border-radius:10px; color:white; text-align:center; }
-.total { background:#007bff;}
-.paid { background:#28a745;}
-.remaining { background:#dc3545;}
-
-form input, form button { padding:8px; margin:5px; }
-form button { cursor:pointer; }
-
-table { width:100%; border-collapse:collapse; margin-top:20px;}
-th,td { border:1px solid #ddd; padding:8px; text-align:left;}
-.late { color:red; font-weight:bold; }
-
-.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); justify-content:center; align-items:center; }
-.modal-content { background:white; padding:20px; border-radius:5px; width:300px; }
-.close-btn { float:right; cursor:pointer; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Tracker</title>
+    <style>
+        body { font-family: Arial; margin:20px; background:#f4f4f4; }
+        .container { max-width:1000px; margin:auto; background:white; padding:20px; border-radius:10px; }
+        .summary { display:flex; gap:15px; margin-bottom:20px; }
+        .card { flex:1; padding:20px; border-radius:10px; color:white; text-align:center; }
+        .total { background:#007bff;}
+        .paid { background:#28a745;}
+        .remaining { background:#dc3545;}
+        form input, form button { padding:8px; margin:5px; }
+        form button { cursor:pointer; }
+        table { width:100%; border-collapse:collapse; margin-top:20px;}
+        th,td { border:1px solid #ddd; padding:8px; text-align:left;}
+        .late { color:red; font-weight:bold; }
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); justify-content:center; align-items:center; }
+        .modal-content { background:white; padding:20px; border-radius:5px; width:300px; }
+        .close-btn { float:right; cursor:pointer; }
+    </style>
 </head>
 <body>
-<div class="container">
-<h2>Sales Tracker</h2>
+    <div class="container">
+        <h2>Sales Tracker</h2>
 
-<!-- Summary Cards -->
-<div class="summary">
-  <div class="card total">Total: <span id="totalCard">0.00</span></div>
-  <div class="card paid">Paid: <span id="paidCard">0.00</span></div>
-  <div class="card remaining">Remaining: <span id="remainingCard">0.00</span></div>
-</div>
+        <!-- Summary Cards -->
+        <div class="summary">
+            <div class="card total">Total: <span id="totalCard">0.00</span></div>
+            <div class="card paid">Paid: <span id="paidCard">0.00</span></div>
+            <div class="card remaining">Remaining: <span id="remainingCard">0.00</span></div>
+        </div>
 
-<!-- Search -->
-<input type="text" id="searchInput" placeholder="Search by Name..." style="width:100%; padding:8px; margin-bottom:10px;">
+        <!-- Search -->
+        <input type="text" id="searchInput" placeholder="Search by Name..." style="width:100%; padding:8px; margin-bottom:10px;">
 
-let clients = [];  // هذا المتغير سيحفظ جميع العملاء
+        <!-- Client Form -->
+        <form id="clientForm">
+            <input type="text" id="name" placeholder="Client Name" required>
+            <input type="number" id="totalAmount" placeholder="Total Amount" min="0" step="0.01" required>
+            <input type="number" id="paidAmount" placeholder="Paid Amount" min="0" step="0.01" required>
+            <input type="date" id="dueDate" required>
+            <button type="submit">Add Client</button>
+            <button type="button" id="cancelEdit" style="display:none;">Cancel Edit</button>
+        </form>
 
-async function fetchClients() {
-    const res = await fetch(API_URL);  // هنا تتحصل على العملاء من API
-    clients = await res.json();  // حفظ البيانات في المتغير clients
-    renderTable();  // استدعاء دالة عرض الجدول بعد التحميل
-    updateSummary();  // تحديث الملخص بعد تحميل البيانات
-}
+        <!-- Table -->
+        <table>
+            <thead>
+                <tr><th>Name</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Due</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="clientTable"></tbody>
+        </table>
+    </div>
 
+    <!-- Payment Modal -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-content">
+            <span class="close-btn" id="closePayment">&times;</span>
+            <h3>Add Payment</h3>
+            <form id="paymentForm">
+                <input type="number" id="paymentAmount" placeholder="Amount" min="0" step="0.01" required>
+                <input type="date" id="paymentDate" required>
+                <button type="submit">Add Payment</button>
+            </form>
+        </div>
+    </div>
 
+    <!-- Payment History Modal -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeHistory">&times;</span>
+            <h3>Payment History</h3>
+            <table>
+                <thead><tr><th>Amount</th><th>Date</th></tr></thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+    </div>
 
-<!-- Client Form -->
-<form id="clientForm">
-  <input type="text" id="name" placeholder="Client Name" required>
-  <input type="number" id="totalAmount" placeholder="Total Amount" min="0" step="0.01" required>
-  <input type="number" id="paidAmount" placeholder="Paid Amount" min="0" step="0.01" required>
-  <input type="date" id="dueDate" required>
-  <button type="submit">Add Client</button>
-  <button type="button" id="cancelEdit" style="display:none;">Cancel Edit</button>
-</form>
+    <script>
+        // رابط Web App لـ Google Apps Script
+        const API_URL = "https://script.google.com/macros/s/AKfycbxbmwtYWHWRq0XwTwmkiqETKxcWmXrzz6Hi-AOpMdxEmJI6z9paaf16a7ZayLgrB9kz/exec"; // ضع رابط نشر السكريبت هنا
 
-<!-- Table -->
-<table>
-<thead>
-<tr><th>Name</th><th>Total</th><th>Paid</th><th>Remaining</th><th>Due</th><th>Status</th><th>Actions</th></tr>
-</thead>
-<tbody id="clientTable"></tbody>
-</table>
-</div>
+        let clients = [];  // هذا المتغير سيحفظ جميع العملاء
+        let editId = null;
+        let currentClientId = null;
 
-<!-- Payment Modal -->
-<div class="modal" id="paymentModal">
-  <div class="modal-content">
-    <span class="close-btn" id="closePayment">&times;</span>
-    <h3>Add Payment</h3>
-    <form id="paymentForm">
-      <input type="number" id="paymentAmount" placeholder="Amount" min="0" step="0.01" required>
-      <input type="date" id="paymentDate" required>
-      <button type="submit">Add Payment</button>
-    </form>
-  </div>
-</div>
+        // فورمات التاريخ
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-GB');
+        }
 
-<!-- Payment History Modal -->
-<div class="modal" id="historyModal">
-  <div class="modal-content">
-    <span class="close-btn" id="closeHistory">&times;</span>
-    <h3>Payment History</h3>
-    <table>
-      <thead><tr><th>Amount</th><th>Date</th></tr></thead>
-      <tbody id="historyBody"></tbody>
-    </table>
-  </div>
-</div>
+        // حالة العميل
+        function getStatus(client) {
+            const rem = client.Total - client.Paid;
+            if (rem <= 0) return "Paid";
+            if (new Date(client.Due) < new Date()) return "Late";
+            return "Pending";
+        }
 
-<script>
-// رابط Web App لـ Google Apps Script
-const API_URL = "https://script.google.com/macros/s/AKfycbxbmwtYWHWRq0XwTwmkiqETKxcWmXrzz6Hi-AOpMdxEmJI6z9paaf16a7ZayLgrB9kz/exec"; // ضع رابط نشر السكريبت هنا
+        // تحديث الكروت
+        function updateSummary() {
+            let total = 0, paid = 0;
+            clients.forEach(c => { total += c.Total; paid += c.Paid; });
+            document.getElementById('totalCard').textContent = total.toFixed(2);
+            document.getElementById('paidCard').textContent = paid.toFixed(2);
+            document.getElementById('remainingCard').textContent = (total - paid).toFixed(2);
+        }
 
-let client.Payments.forEach(p => {const tr = document.createElement('tr');
-  tr.innerHTML = `<td>${p.amount.toFixed(2)}</td><td>${formatDate(p.date)}</td>`;
-  tbody.appendChild(tr);
-});
-s = [];
-let editId = null;
-let currentClientId = null;
+        // رسم الجدول
+        function renderTable(filter = "") {
+            const tbody = document.getElementById('clientTable');
+            tbody.innerHTML = "";
+            clients.filter(c => c.Name.toLowerCase().includes(filter.toLowerCase()))
+                   .forEach(c => {
+                const rem = c.Total - c.Paid;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${c.Name}</td>
+                    <td>${c.Total.toFixed(2)}</td>
+                    <td>${c.Paid.toFixed(2)}</td>
+                    <td>${rem.toFixed(2)}</td>
+                    <td>${formatDate(c.Due)}</td>
+                    <td class="${getStatus(c) === 'Late' ? 'late' : ''}">${getStatus(c)}</td>
+                    <td>
+                      <button class="editBtn" data-id="${c.ID}">Edit</button>
+                      <button class="payBtn" data-id="${c.ID}">Add Payment</button>
+                      <button class="historyBtn" data-id="${c.ID}">History</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        }
 
-// فورمات التاريخ
-function formatDate(dateStr){
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-GB');
-}
+        // جلب البيانات من الشيت
+        async function fetchClients() {
+            try {
+                const res = await fetch(API_URL);
+                clients = await res.json();
+                renderTable();
+                updateSummary();
+            } catch (error) {
+                console.error("Error fetching clients:", error);
+            }
+        }
 
-// حالة العميل
-function getStatus(client){
-    const rem = client.Total - client.Paid;
-    if(rem <= 0) return "Paid";
-    if(new Date(client.Due) < new Date()) return "Late";
-    return "Pending";
-}
+        // إضافة/تعديل عميل
+        document.getElementById('clientForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const total = parseFloat(document.getElementById('totalAmount').value);
+            const paid = parseFloat(document.getElementById('paidAmount').value);
+            const due = document.getElementById('dueDate').value;
 
-// تحديث الكروت
-function updateSummary(){
-    let total=0, paid=0;
-    clients.forEach(c => { total += c.Total; paid += c.Paid; });
-    document.getElementById('totalCard').textContent = total.toFixed(2);
-    document.getElementById('paidCard').textContent = paid.toFixed(2);
-    document.getElementById('remainingCard').textContent = (total - paid).toFixed(2);
-}
+            if (paid > total) {
+                alert("Paid amount cannot exceed total amount!");
+                return;
+            }
 
-// رسم الجدول
-function renderTable(filter=""){
-    const tbody = document.getElementById('clientTable');
-    tbody.innerHTML = "";
-    clients.filter(c => c.Name.toLowerCase().includes(filter.toLowerCase()))
-           .forEach(c => {
-        const rem = c.Total - c.Paid;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${c.Name}</td>
-            <td>${c.Total.toFixed(2)}</td>
-            <td>${c.Paid.toFixed(2)}</td>
-            <td>${rem.toFixed(2)}</td>
-            <td>${formatDate(c.Due)}</td>
-            <td class="${getStatus(c)==='Late'?'late':''}">${getStatus(c)}</td>
-            <td>
-              <button class="editBtn" data-id="${c.ID}">Edit</button>
-              <button class="payBtn" data-id="${c.ID}">Add Payment</button>
-              <button class="historyBtn" data-id="${c.ID}">History</button>
-            </td>`;
-        tbody.appendChild(tr);
-    });
-}
+            let clientData;
+            if (editId) {
+                clientData = clients.find(c => c.ID === editId);
+                clientData.Name = name;
+                clientData.Total = total;
+                clientData.Paid = paid;
+                clientData.Remaining = total - paid;
+                clientData.Due = due;
+            } else {
+                clientData = { ID: Date.now(), Name: name, Total: total, Paid: paid, Remaining: total - paid, Due: due, Payments: [] };
+                clients.push(clientData);
+            }
 
-// جلب البيانات من الشيت
-async function fetchClients(){
-    const res = await fetch(API_URL);
-    clients = await res.json();
-    renderTable();
-    updateSummary();
-}
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "saveClient", client: clientData })
+                });
+            } catch (error) {
+                console.error("Error saving client:", error);
+            }
 
-// إضافة/تعديل عميل
-document.getElementById('clientForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const name = document.getElementById('name').value;
-    const total = parseFloat(document.getElementById('totalAmount').value);
-    const paid = parseFloat(document.getElementById('paidAmount').value);
-    const due = document.getElementById('dueDate').value;
-
-    let clientData;
-    if(editId){
-        clientData = clients.find(c => c.ID === editId);
-        clientData.Name = name;
-        clientData.Total = total;
-        clientData.Paid = paid;
-        clientData.Remaining = total - paid;
-        clientData.Due = due;
-    } else {
-        clientData = {ID: Date.now(), Name: name, Total: total, Paid: paid, Remaining: total-paid, Due: due, Payments: []};
-        clients.push(clientData);
-    }
-
-    await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({action:"saveClient", client:clientData})
-    });
-
-    editId = null;
-    document.getElementById('cancelEdit').style.display='none';
-    this.reset();
-    renderTable();
-    updateSummary();
-});
-
-// الغاء التعديل
-document.getElementById('cancelEdit').addEventListener('click', function(){
-    editId=null;
-    document.getElementById('clientForm').reset();
-    this.style.display='none';
-});
-
-// جدول الأزرار
-document.getElementById('clientTable').addEventListener('click', async function(e){
-    const id = parseInt(e.target.dataset.id);
-    const client = clients.find(c=>c.ID===id);
-    if(!client) return;
-
-    if(e.target.classList.contains('editBtn')){
-        editId=id;
-        document.getElementById('name').value = client.Name;
-        document.getElementById('totalAmount').value = client.Total;
-        document.getElementById('paidAmount').value = client.Paid;
-        document.getElementById('dueDate').value = client.Due;
-        document.getElementById('cancelEdit').style.display='inline';
-    }
-
-    if(e.target.classList.contains('payBtn')){
-        currentClientId=id;
-        document.getElementById('paymentModal').style.display='flex';
-    }
-
-    if(e.target.classList.contains('historyBtn')){
-        const tbody = document.getElementById('historyBody');
-        tbody.innerHTML = '';
-        client.Payments.forEach(p=>{
-            const tr=document.createElement('tr');
-            tr.innerHTML= `<td>${p.amount.toFixed(2)}</td><td>${formatDate(p.date)}</td>`;
-            tbody.appendChild(tr);
+            editId = null;
+            document.getElementById('cancelEdit').style.display = 'none';
+            this.reset();
+            renderTable();
+            updateSummary();
         });
-        document.getElementById('historyModal').style.display='flex';
-    }
-});
 
-// الدفعات
-document.getElementById('closePayment').addEventListener('click',()=>{document.getElementById('paymentModal').style.display='none';});
-document.getElementById('paymentForm').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const amt = parseFloat(document.getElementById('paymentAmount').value);
-    const date = document.getElementById('paymentDate').value;
-    const client = clients.find(c => c.ID === currentClientId);
-    client.Paid += amt;
-    client.Remaining = client.Total - client.Paid;
-    client.Payments.push({amount: amt, date: date});
+        // الغاء التعديل
+        document.getElementById('cancelEdit').addEventListener('click', function() {
+            editId = null;
+            document.getElementById('clientForm').reset();
+            this.style.display = 'none';
+        });
 
-    await fetch(API_URL, {
-        method:"POST",
-        body: JSON.stringify({action:"addPayment", ID: client.ID, amount: amt, date: date})
-    });
+        // جدول الأزرار
+        document.getElementById('clientTable').addEventListener('click', async function(e) {
+            const id = parseInt(e.target.dataset.id);
+            const client = clients.find(c => c.ID === id);
+            if (!client) return;
 
-    document.getElementById('paymentModal').style.display='none';
-    this.reset();
-    renderTable();
-    updateSummary();
-});
+            if (e.target.classList.contains('editBtn')) {
+                editId = id;
+                document.getElementById('name').value = client.Name;
+                document.getElementById('totalAmount').value = client.Total;
+                document.getElementById('paidAmount').value = client.Paid;
+                document.getElementById('dueDate').value = client.Due;
+                document.getElementById('cancelEdit').style.display = 'inline';
+            }
 
-// تاريخ الدفعات
-document.getElementById('closeHistory').addEventListener('click',()=>{document.getElementById('historyModal').style.display='none';});
+            if (e.target.classList.contains('payBtn')) {
+                currentClientId = id;
+                document.getElementById('paymentModal').style.display = 'flex';
+            }
 
-// البحث
-document.getElementById('searchInput').addEventListener('input', e=>{
-    renderTable(e.target.value);
-});
+            if (e.target.classList.contains('historyBtn')) {
+                const tbody = document.getElementById('historyBody');
+                tbody.innerHTML = '';
+                client.Payments.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${p.amount.toFixed(2)}</td><td>${formatDate(p.date)}</td>`;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('historyModal').style.display = 'flex';
+            }
+        });
 
-// أول مرة جلب البيانات
-fetchClients();
+        // الدفعات
+        document.getElementById('closePayment').addEventListener('click', () => { document.getElementById('paymentModal').style.display = 'none'; });
+        document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const amt = parseFloat(document.getElementById('paymentAmount').value);
+            const date = document.getElementById('paymentDate').value;
+            const client = clients.find(c => c.ID === currentClientId);
 
-</script>
+            if (client.Paid + amt > client.Total) {
+                alert("Payment would exceed total amount!");
+                return;
+            }
+
+            client.Paid += amt;
+            client.Remaining = client.Total - client.Paid;
+            client.Payments.push({ amount: amt, date: date });
+
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "addPayment", ID: client.ID, amount: amt, date: date })
+                });
+            } catch (error) {
+                console.error("Error adding payment:", error);
+            }
+
+            document.getElementById('paymentModal').style.display = 'none';
+            this.reset();
+            renderTable();
+            updateSummary();
+        });
+
+        // تاريخ الدفعات
+        document.getElementById('closeHistory').addEventListener('click', () => { document.getElementById('historyModal').style.display = 'none'; });
+
+        // البحث
+        document.getElementById('searchInput').addEventListener('input', e => {
+            renderTable(e.target.value);
+        });
+
+        // أول مرة جلب البيانات
+        fetchClients();
+    </script>
 </body>
 </html>
