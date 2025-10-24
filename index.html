@@ -40,6 +40,17 @@ th,td { border:1px solid #ddd; padding:8px; text-align:left;}
 <!-- Search -->
 <input type="text" id="searchInput" placeholder="Search by Name..." style="width:100%; padding:8px; margin-bottom:10px;">
 
+let clients = [];  // هذا المتغير سيحفظ جميع العملاء
+
+async function fetchClients() {
+    const res = await fetch(API_URL);  // هنا تتحصل على العملاء من API
+    clients = await res.json();  // حفظ البيانات في المتغير clients
+    renderTable();  // استدعاء دالة عرض الجدول بعد التحميل
+    updateSummary();  // تحديث الملخص بعد تحميل البيانات
+}
+
+
+
 <!-- Client Form -->
 <form id="clientForm">
   <input type="text" id="name" placeholder="Client Name" required>
