@@ -216,7 +216,7 @@ document.getElementById('clientTable').addEventListener('click', async function(
         tbody.innerHTML = '';
         client.Payments.forEach(p=>{
             const tr=document.createElement('tr');
-            tr.innerHTML=⁠ <td>${p.amount.toFixed(2)}</td><td>${formatDate(p.date)}</td> ⁠;
+            tr.innerHTML=⁠ `<td>${p.amount.toFixed(2)}</td><td>${formatDate(p.date)}</td>`;
             tbody.appendChild(tr);
         });
         document.getElementById('historyModal').style.display='flex';
